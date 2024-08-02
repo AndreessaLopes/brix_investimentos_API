@@ -15,13 +15,13 @@ class CreateVendasTable extends Migration
     {
         Schema::create('vendas', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('id_ticker');
-            $table->integer('quantidade');
-            $table->integer('valor_unitario');
-            $table->float('valor_total');
-            $table->timestamps();
+    $table->unsignedBigInteger('id_ticker');
+    $table->integer('quantidade');
+    $table->decimal('valor_unitario', 10, 2); // Usar decimal
+    $table->decimal('valor_total', 10, 2);    // Usar decimal
+    $table->timestamps();
 
-            $table->foreign('id_ticker')->references('id')->on('cadastrar_ativos');
+    $table->foreign('id_ticker')->references('id')->on('cadastrar_ativos');
         });
     }
 

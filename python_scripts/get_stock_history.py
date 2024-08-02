@@ -19,11 +19,11 @@ def obter_dados_historicos_minuto(ticker):
     agora = datetime.now(timezone)
     
     # Calcula o início e o fim do dia de negociação
-    inicio_do_dia = agora.replace(hour=10, minute=30, second=0, microsecond=0).date()
-    fim_do_dia = agora.replace(hour=17, minute=0, second=0, microsecond=0).date()
+    inicio_do_dia = agora.replace(hour=10, minute=30, second=0, microsecond=0)
+    fim_do_dia = agora.replace(hour=17, minute=0, second=0, microsecond=0)
 
-    inicio = datetime.combine(inicio_do_dia, datetime.min.time(), timezone)
-    fim = datetime.combine(fim_do_dia, datetime.max.time(), timezone)
+    inicio = inicio_do_dia
+    fim = fim_do_dia
 
     ativo = yf.Ticker(ticker)
     hist = ativo.history(start=inicio, end=fim, interval='1m')  # Intervalo de 1 minuto
@@ -45,6 +45,7 @@ def obter_dados_historicos_minuto(ticker):
 # Função para inserir dados no banco de dados
 def inserir_dados(connection, dados):
     cursor = connection.cursor()
+    cursor.execute("START TRANSACTION")
     for dado in dados:
         cursor.execute("""
         INSERT INTO historico_preco_ativos (ticker, data_ativo, open, low, high, close, volume)

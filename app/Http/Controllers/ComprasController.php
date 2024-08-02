@@ -8,6 +8,7 @@ use App\Models\HistoricoPrecoAtivo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log; // Adicionar a importação para Log
 
 class ComprasController extends Controller
 {
@@ -18,39 +19,53 @@ class ComprasController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), Compras::rules());
+{
+    // Log the incoming request data
+    Log::info('Request Data:', $request->all());
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
-        }
+    $validator = Validator::make($request->all(), Compras::rules());
 
-        DB::beginTransaction();
-        try {
-            $compra = Compras::create($request->all());
-
-            $ativo = CadastrarAtivo::find($request->id_ticker);
-            $ativo->quantidade += $request->quantidade;
-            $ativo->preco_compra = ($ativo->preco_compra * $ativo->quantidade + $request->valor_total) / ($ativo->quantidade + $request->quantidade);
-            $ativo->save();
-
-            HistoricoPrecoAtivo::create([
-                'id_ticker' => $request->id_ticker,
-                'data_ativo' => now(),
-                'open' => $request->valor_unitario,
-                'low' => $request->valor_unitario,
-                'high' => $request->valor_unitario,
-                'close' => $request->valor_unitario,
-                'volume' => $request->quantidade,
-            ]);
-
-            DB::commit();
-            return response()->json($compra->only(['id_ticker', 'quantidade', 'valor_unitario', 'valor_total', 'created_at', 'updated_at']), 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+    if ($validator->fails()) {
+        Log::info('Validation failed:', $validator->errors()->toArray());
+        return response()->json($validator->errors(), 400);
     }
+
+    DB::beginTransaction();
+    try {
+        // Check if the id_ticker exists
+        $ativo = CadastrarAtivo::find($request->id_ticker);
+        if (!$ativo) {
+            return response()->json(['error' => 'Ativo não encontrado'], 404);
+        }
+
+        // Criação da compra
+        $compra = Compras::create($request->only(['id_ticker', 'quantidade', 'valor_unitario', 'valor_total']));
+
+        // Atualizar o ativo
+        $quantidade_antiga = $ativo->quantidade;
+        $ativo->quantidade += $request->quantidade;
+        $ativo->preco_compra = ($ativo->preco_compra * $quantidade_antiga + $request->valor_total) / $ativo->quantidade;
+        $ativo->save();
+
+        // Criação do histórico de preço
+        HistoricoPrecoAtivo::create([
+            'ticker' => $ativo->ticker,
+            'data_ativo' => now(),
+            'open' => $request->valor_unitario,
+            'low' => $request->valor_unitario,
+            'high' => $request->valor_unitario,
+            'close' => $request->valor_unitario,
+            'volume' => $request->quantidade,
+        ]);
+
+        DB::commit();
+        return response()->json($compra, 201);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error during transaction:', ['error' => $e->getMessage()]);
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+}
 
     public function update(Request $request, Compras $compra)
     {

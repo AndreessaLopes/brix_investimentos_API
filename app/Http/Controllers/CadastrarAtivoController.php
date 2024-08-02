@@ -38,6 +38,19 @@ class CadastrarAtivoController extends Controller
 
             $ativo = CadastrarAtivo::create($validatedData);
 
+            // Criar histórico de preços inicial
+            $historicoData = [
+                'ticker' => $ativo->ticker,
+                'data_ativo' => now(),
+                'open' => $request->input('preco_compra'),
+                'low' => $request->input('preco_compra'),
+                'high' => $request->input('preco_compra'),
+                'close' => $request->input('preco_compra'),
+                'volume' => $request->input('quantidade'),
+            ];
+
+            HistoricoPrecoAtivo::create($historicoData);
+
             return response()->json($ativo, Response::HTTP_CREATED);
         } catch (ValidationException $e) {
             return response()->json([
@@ -105,7 +118,7 @@ class CadastrarAtivoController extends Controller
                 return response()->json(['message' => 'Ativo não encontrado'], Response::HTTP_NOT_FOUND);
             }
 
-            HistoricoPrecoAtivo::where('id_ticker', $ativo->ticker)->delete();
+            HistoricoPrecoAtivo::where('ticker', $ativo->ticker)->delete();
 
             $ativo->delete();
 

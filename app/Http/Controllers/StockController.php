@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\HistoricoPrecoAtivo; // Importar o modelo HistoricoPrecoAtivo
 use Illuminate\Http\Request;
+use Illuminate\Http\Response; // Importar a classe Response
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
@@ -36,5 +38,15 @@ class StockController extends Controller
             return response()->json(['error' => 'Erro ao executar o script'], 500);
         }
     }
-}
 
+    // Função para obter todos os históricos de preços
+    public function getAllStockHistories()
+    {
+        try {
+            $historicos = HistoricoPrecoAtivo::all();
+            return response()->json($historicos);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erro ao listar o histórico de preços: ' . $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+}

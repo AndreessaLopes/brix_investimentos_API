@@ -21,8 +21,8 @@ class Vendas extends Model
         return [
             'id_ticker' => 'required|exists:cadastrar_ativos,id',
             'quantidade' => 'required|integer|min:1',
-            'valor_unitario' => 'required|integer|min:1',
-            'valor_total' => 'required|numeric|min:0',
+            'valor_unitario' => 'required|numeric|min:0.01',
+            'valor_total' => 'required|numeric|min:0.01',
         ];
     }
 
@@ -33,6 +33,6 @@ class Vendas extends Model
 
     public function compra()
     {
-        return $this->belongsTo(Compra::class, 'id_compra', 'id');
+        return $this->belongsTo(Compras::class, 'id_compra', 'id');
     }
 }

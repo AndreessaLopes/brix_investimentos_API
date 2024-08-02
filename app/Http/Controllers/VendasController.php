@@ -8,6 +8,7 @@ use App\Models\HistoricoPrecoAtivo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log; // Adicionar a importação para Log
 
 class VendasController extends Controller
 {
@@ -19,26 +20,39 @@ class VendasController extends Controller
 
     public function store(Request $request)
     {
+        // Log the incoming request data
+        Log::info('Request Data:', $request->all());
+
         $validator = Validator::make($request->all(), Vendas::rules());
 
         if ($validator->fails()) {
+            Log::info('Validation failed:', $validator->errors()->toArray());
             return response()->json($validator->errors(), 400);
         }
 
         DB::beginTransaction();
         try {
+            // Verificar se o ativo existe
             $ativo = CadastrarAtivo::find($request->id_ticker);
+            if (!$ativo) {
+                return response()->json(['error' => 'Ativo não encontrado'], 404);
+            }
+
+            // Verificar quantidade disponível
             if ($ativo->quantidade < $request->quantidade) {
                 return response()->json(['error' => 'Quantidade insuficiente'], 400);
             }
 
-            $venda = Vendas::create($request->all());
+            // Criação da venda
+            $venda = Vendas::create($request->only(['id_ticker', 'quantidade', 'valor_unitario', 'valor_total']));
 
+            // Atualizar o ativo
             $ativo->quantidade -= $request->quantidade;
             $ativo->save();
 
+            // Criação do histórico de preço
             HistoricoPrecoAtivo::create([
-                'id_ticker' => $request->id_ticker,
+                'ticker' => $ativo->ticker,
                 'data_ativo' => now(),
                 'open' => $request->valor_unitario,
                 'low' => $request->valor_unitario,
@@ -51,6 +65,7 @@ class VendasController extends Controller
             return response()->json($venda, 201);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Error during transaction:', ['error' => $e->getMessage()]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
