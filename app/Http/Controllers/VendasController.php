@@ -8,13 +8,13 @@ use App\Models\HistoricoPrecoAtivo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log; // Adicionar a importação para Log
+use Illuminate\Support\Facades\Log;
 
 class VendasController extends Controller
 {
     public function index()
     {
-        $vendas = Vendas::select('id_ticker', 'quantidade', 'valor_unitario', 'valor_total', 'created_at', 'updated_at')->get();
+        $vendas = Vendas::select('id_ticker', 'id_compra', 'quantidade', 'valor_unitario', 'valor_total', 'created_at', 'updated_at')->get();
         return response()->json($vendas);
     }
 
@@ -23,6 +23,7 @@ class VendasController extends Controller
         // Log the incoming request data
         Log::info('Request Data:', $request->all());
 
+        // Validate the incoming request
         $validator = Validator::make($request->all(), Vendas::rules());
 
         if ($validator->fails()) {
@@ -44,7 +45,13 @@ class VendasController extends Controller
             }
 
             // Criação da venda
-            $venda = Vendas::create($request->only(['id_ticker', 'quantidade', 'valor_unitario', 'valor_total']));
+            $venda = Vendas::create([
+                'id_ticker' => $request->id_ticker,
+                'id_compra' => $request->id_compra,
+                'quantidade' => $request->quantidade,
+                'valor_unitario' => $request->valor_unitario,
+                'valor_total' => $request->valor_total
+            ]);
 
             // Atualizar o ativo
             $ativo->quantidade -= $request->quantidade;
@@ -68,31 +75,5 @@ class VendasController extends Controller
             Log::error('Error during transaction:', ['error' => $e->getMessage()]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
-    }
-
-    public function show(Vendas $venda)
-    {
-        $venda = Vendas::select('id_ticker', 'quantidade', 'valor_unitario', 'valor_total', 'created_at', 'updated_at')->find($venda->id);
-        return response()->json($venda);
-    }
-
-    public function update(Request $request, Vendas $venda)
-    {
-        $validator = Validator::make($request->all(), Vendas::rules());
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 400);
-        }
-
-        $venda->update($request->all());
-
-        return response()->json($venda, 200);
-    }
-
-    public function destroy(Vendas $venda)
-    {
-        $venda->delete();
-
-        return response()->json(null, 204);
     }
 }

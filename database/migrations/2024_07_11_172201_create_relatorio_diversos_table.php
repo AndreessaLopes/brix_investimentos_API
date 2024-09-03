@@ -6,14 +6,11 @@ use Illuminate\Support\Facades\Schema;
 
 class CreateRelatorioDiversosTable extends Migration
 {
-    /**
-     * Run the migrations.
-     *
-     * @return void
-     */
     public function up()
     {
         Schema::create('relatorio_diversos', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Adicionado para associar relatórios a usuários
             $table->double('posicao_inicial');
             $table->double('posicao_final');
             $table->double('movimentacao');
@@ -24,11 +21,6 @@ class CreateRelatorioDiversosTable extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     *
-     * @return void
-     */
     public function down()
     {
         Schema::dropIfExists('relatorio_diversos');
